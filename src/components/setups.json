@@ -1,0 +1,10 @@
+{
+    "setups": [
+        {
+            "name": "setup1",
+            "contract": "contract_address",
+            "cost": "0.01",
+            "data": "0x"
+        }
+    ]
+}

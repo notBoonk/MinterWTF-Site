@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "@hope-ui/solid": "^0.6.2",
+    "@stitches/core": "^1.2.8",
+    "babel-preset-solid": "^1.4.4",
+    "ethers": "^5.6.8",
+    "solid-icons": "^0.4.13",
+    "solid-js": "^1.4.4",
+    "solid-transition-group": "^0.0.10",
+    "vite": "^2.9.12",
+    "vite-plugin-solid": "^2.2.6"
+  }
+}
