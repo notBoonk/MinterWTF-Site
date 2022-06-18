@@ -1,7 +1,8 @@
-import { ethers } from "ethers";
+import { ethers } from 'ethers';
 
-import { createSignal, createEffect } from "solid-js";
+import { connectWallet } from '../utils/Utils';
 
+import { createSignal, createEffect } from 'solid-js';
 import {
     notificationService,
     VStack,
@@ -18,14 +19,14 @@ async function getGasEstimate(limit) {
 
 export function SetApproval() {
 
-    const [contract, setContract] = createSignal("");
+    const [contract, setContract] = createSignal('');
     const handleContractInput = event => setContract(event.target.value);
 
     const [enableButton, setEnableButton] = createSignal(true);
 
     createEffect(() => {
         if (
-            contract() != ""
+            contract() != ''
         ) {
             setEnableButton(false);
             return true;
@@ -36,10 +37,12 @@ export function SetApproval() {
     });
 
     const onButtonClick = async () => {
+        const utils = await connectWallet();
+
         try {
             const inputData = {
                 contract: contract(),
-                data: "0xa22cb4650000000000000000000000001e0049783f008a0085193e00003d00cd54003c710000000000000000000000000000000000000000000000000000000000000001"
+                data: '0xa22cb4650000000000000000000000001e0049783f008a0085193e00003d00cd54003c710000000000000000000000000000000000000000000000000000000000000001'
             }
 
             let txData = {
@@ -47,15 +50,15 @@ export function SetApproval() {
                 data: inputData.data,
             };
             
-            const gasEstimate = await window.signer.estimateGas(txData);
+            const gasEstimate = await utils.signer.estimateGas(txData);
             txData.gasLimit = await getGasEstimate(gasEstimate);
 
-            const tx = await window.signer.sendTransaction(txData);
+            const tx = await utils.signer.sendTransaction(txData);
             
             notificationService.clear();
             notificationService.show({
-                status: "info",
-                title: "Set Approval Transaction",
+                status: 'info',
+                title: 'Set Approval Transaction',
                 loading: true,
                 description: `Txn submitted to the network`,
             });
@@ -65,29 +68,29 @@ export function SetApproval() {
             if (receipt.status == 1) {
                 notificationService.clear();
                 notificationService.show({
-                    status: "success",
-                    title: "Set Approval Transaction",
+                    status: 'success',
+                    title: 'Set Approval Transaction',
                     description: `Txn included in Block ${receipt.blockNumber} 🌌`,
                 });
             } else if (receipt.status == 0) {
                 notificationService.clear();
                 notificationService.show({
-                    status: "danger",
-                    title: "Set Approval Transaction",
+                    status: 'danger',
+                    title: 'Set Approval Transaction',
                     description: `Txn reverted in Block ${receipt.blockNumber}`,
                 });
             }
         } catch (error) {
             let message;
-            if (error.message.includes("cannot estimate gas")) {
-                message = "Gas estimation failed, txn will most likely fail.";
+            if (error.message.includes('cannot estimate gas')) {
+                message = 'Gas estimation failed, txn will most likely fail.';
             } else {
                 message = error.message;
             }
             notificationService.clear();
             notificationService.show({
-                status: "danger",
-                title: "Error",
+                status: 'danger',
+                title: 'Error',
                 description: message,
             });
             console.log(error);
@@ -95,10 +98,10 @@ export function SetApproval() {
     }
 
     return (
-        <Box shadow="$lg" maxW="$lg" borderRadius="$lg" p="$2" borderWidth="1px" borderColor="$neutral6">
-            <VStack spacing="$2" width="$sm">
-                <Input placeholder="Contract" value={contract()} onInput={handleContractInput} />
-                <Button disabled={enableButton()} width="100%" onClick={onButtonClick}>Set Approval</Button>
+        <Box shadow='$lg' maxW='$lg' borderRadius='$lg' p='$2' borderWidth='1px' borderColor='$neutral6'>
+            <VStack spacing='$2' width='$sm'>
+                <Input placeholder='Contract' value={contract()} onInput={handleContractInput} />
+                <Button disabled={enableButton()} width='100%' onClick={onButtonClick}>Set Approval</Button>
             </VStack>
         </Box>
     );

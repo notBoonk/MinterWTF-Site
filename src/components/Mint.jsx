@@ -1,7 +1,8 @@
-import { ethers } from "ethers";
+import { ethers } from 'ethers';
 
-import { createSignal, createEffect } from "solid-js";
+import { connectWallet } from '../utils/Utils';
 
+import { createSignal, createEffect } from 'solid-js';
 import {
     notificationService,
     VStack,
@@ -27,21 +28,21 @@ async function getCurrentGas() {
 export function Mint() {
 
     const url = window.location.href;
-    const hash = url.split("hash=")[1];
+    const hash = url.split('hash=')[1];
 
-    const [contract, setContract] = createSignal("");
+    const [contract, setContract] = createSignal('');
     const handleContractInput = event => setContract(event.target.value);
 
-    const [cost, setCost] = createSignal("");
+    const [cost, setCost] = createSignal('');
     const handleCostInput = event => setCost(event.target.value);
 
-    const [data, setData] = createSignal("");
+    const [data, setData] = createSignal('');
     const handleDataInput = event => setData(event.target.value);
 
-    const [iterations, setIterations] = createSignal("");
+    const [iterations, setIterations] = createSignal('');
     const handleIterationsInput = event => setIterations(event.target.value);
 
-    const [minters, setMinters] = createSignal("");
+    const [minters, setMinters] = createSignal('');
     const handleMintersInput = event => setMinters(event.target.value);
 
     const [massMint, setMassMint] = createSignal(false);
@@ -51,10 +52,12 @@ export function Mint() {
 
     if (hash !== undefined) {
         (async () => {
-            const tx = await window.provider.getTransaction(hash);
+            const utils = await connectWallet();
+            
+            const tx = await utils.provider.getTransaction(hash);
             setContract(tx.to);
             setCost(ethers.utils.formatEther(tx.value));
-            if (!tx.data.toLowerCase().includes(tx.from.split("0x")[1].toLowerCase())) {
+            if (!tx.data.toLowerCase().includes(tx.from.split('0x')[1].toLowerCase())) {
                 setData(tx.data);
             }
         })();
@@ -63,11 +66,11 @@ export function Mint() {
     createEffect(() => {
         if (massMint() == true) {
             if (
-                contract() != "" &&
-                cost() != "" &&
-                data() != "" &&
-                iterations() != "" &&
-                minters() != ""
+                contract() != '' &&
+                cost() != '' &&
+                data() != '' &&
+                iterations() != '' &&
+                minters() != ''
             ) {
                 setEnableButton(false);
                 return true;
@@ -77,9 +80,9 @@ export function Mint() {
             }
         } else {
             if (
-                contract() != "" &&
-                cost() != "" &&
-                data() != ""
+                contract() != '' &&
+                cost() != '' &&
+                data() != ''
             ) {
                 setEnableButton(false);
                 return true;
@@ -91,6 +94,8 @@ export function Mint() {
     });
 
     const MintClick = async () => {
+        const utils = await connectWallet();
+
         if (massMint()) {
             try {
                 const inputData = {
@@ -107,7 +112,7 @@ export function Mint() {
                 let totalCost = (inputData.cost * inputData.iterations) * inputData.minters;
                 txOverrides.value = ethers.utils.parseEther(totalCost.toString());
                 
-                const gasEstimate = await window.minterContract.connect(window.signer).estimateGas.mint(
+                const gasEstimate = await utils.minterContract.connect(utils.signer).estimateGas.mint(
                     inputData.contract,
                     ethers.utils.parseEther(inputData.cost.toString()),
                     inputData.data,
@@ -122,16 +127,16 @@ export function Mint() {
                 const gasNumbers = await getCurrentGas();
                 
                 if (selectedGas == 1) {
-                    txOverrides.gasPrice = ethers.utils.parseUnits((Math.floor(gasNumbers[0] / 1000000000) + 5).toString(), "gwei");
+                    txOverrides.gasPrice = ethers.utils.parseUnits((Math.floor(gasNumbers[0] / 1000000000) + 5).toString(), 'gwei');
                 } else if (selectedGas == 2) {
-                    txOverrides.gasPrice = ethers.utils.parseUnits((Math.floor(gasNumbers[1] / 1000000000) + 10).toString(), "gwei");
+                    txOverrides.gasPrice = ethers.utils.parseUnits((Math.floor(gasNumbers[1] / 1000000000) + 10).toString(), 'gwei');
                 } else if (selectedGas == 3) {
-                    txOverrides.gasPrice = ethers.utils.parseUnits(localStorage.getItem("profile1"), "gwei");
+                    txOverrides.gasPrice = ethers.utils.parseUnits(localStorage.getItem('profile1'), 'gwei');
                 } else if (selectedGas == 4) {
-                    txOverrides.gasPrice = ethers.utils.parseUnits(localStorage.getItem("profile2"), "gwei");
+                    txOverrides.gasPrice = ethers.utils.parseUnits(localStorage.getItem('profile2'), 'gwei');
                 }
 
-                const tx = await window.minterContract.connect(window.signer).mint(
+                const tx = await utils.minterContract.connect(utils.signer).mint(
                     inputData.contract,
                     ethers.utils.parseEther(inputData.cost.toString()),
                     inputData.data,
@@ -143,8 +148,8 @@ export function Mint() {
                 
                 notificationService.clear();
                 notificationService.show({
-                    status: "info",
-                    title: "Mass Mint Transaction",
+                    status: 'info',
+                    title: 'Mass Mint Transaction',
                     loading: true,
                     description: `Txn submitted to the network`,
                 });
@@ -154,29 +159,29 @@ export function Mint() {
                 if (receipt.status == 1) {
                     notificationService.clear();
                     notificationService.show({
-                        status: "success",
-                        title: "Mass Mint Transaction",
+                        status: 'success',
+                        title: 'Mass Mint Transaction',
                         description: `Txn included in Block ${receipt.blockNumber} 🌌`,
                     });
                 } else if (receipt.status == 0) {
                     notificationService.clear();
                     notificationService.show({
-                        status: "danger",
-                        title: "Mass Mint Transaction",
+                        status: 'danger',
+                        title: 'Mass Mint Transaction',
                         description: `Txn reverted in Block ${receipt.blockNumber}`,
                     });
                 }
             } catch (error) {
                 let message;
-                if (error.message.includes("cannot estimate gas")) {
-                    message = "Gas estimation failed, txn will most likely fail.";
+                if (error.message.includes('cannot estimate gas')) {
+                    message = 'Gas estimation failed, txn will most likely fail.';
                 } else {
                     message = error.message;
                 }
                 notificationService.clear();
                 notificationService.show({
-                    status: "danger",
-                    title: "Error",
+                    status: 'danger',
+                    title: 'Error',
                     description: message,
                 });
                 console.log(error);
@@ -196,27 +201,27 @@ export function Mint() {
                 };
                 
                 const gasNumbers = await getCurrentGas();
-                const gasEstimate = await window.signer.estimateGas(txData);
+                const gasEstimate = await utils.signer.estimateGas(txData);
                 const selectedGas = localStorage.getItem('selectedGas') || 0;
 
                 txData.gasLimit = await getGasEstimate(gasEstimate);
 
                 if (selectedGas == 1) {
-                    txData.gasPrice = ethers.utils.parseUnits((Math.floor(gasNumbers[0] / 1000000000) + 5).toString(), "gwei");
+                    txData.gasPrice = ethers.utils.parseUnits((Math.floor(gasNumbers[0] / 1000000000) + 5).toString(), 'gwei');
                 } else if (selectedGas == 2) {
-                    txData.gasPrice = ethers.utils.parseUnits((Math.floor(gasNumbers[1] / 1000000000) + 10).toString(), "gwei");
+                    txData.gasPrice = ethers.utils.parseUnits((Math.floor(gasNumbers[1] / 1000000000) + 10).toString(), 'gwei');
                 } else if (selectedGas == 3) {
-                    txData.gasPrice = ethers.utils.parseUnits(localStorage.getItem("profile1"), "gwei");
+                    txData.gasPrice = ethers.utils.parseUnits(localStorage.getItem('profile1'), 'gwei');
                 } else if (selectedGas == 4) {
-                    txData.gasPrice = ethers.utils.parseUnits(localStorage.getItem("profile2"), "gwei");
+                    txData.gasPrice = ethers.utils.parseUnits(localStorage.getItem('profile2'), 'gwei');
                 }
     
-                const tx = await window.signer.sendTransaction(txData);
+                const tx = await utils.signer.sendTransaction(txData);
                 
                 notificationService.clear();
                 notificationService.show({
-                    status: "info",
-                    title: "Mint Transaction",
+                    status: 'info',
+                    title: 'Mint Transaction',
                     loading: true,
                     description: `Txn submitted to the network`,
                 });
@@ -226,29 +231,29 @@ export function Mint() {
                 if (receipt.status == 1) {
                     notificationService.clear();
                     notificationService.show({
-                        status: "success",
-                        title: "Mint Transaction",
+                        status: 'success',
+                        title: 'Mint Transaction',
                         description: `Txn included in Block ${receipt.blockNumber} 🌌`,
                     });
                 } else if (receipt.status == 0) {
                     notificationService.clear();
                     notificationService.show({
-                        status: "danger",
-                        title: "Mint Transaction",
+                        status: 'danger',
+                        title: 'Mint Transaction',
                         description: `Txn reverted in Block ${receipt.blockNumber}`,
                     });
                 }
             } catch (error) {
                 let message;
-                if (error.message.includes("cannot estimate gas")) {
-                    message = "Gas estimation failed, txn will most likely fail.";
+                if (error.message.includes('cannot estimate gas')) {
+                    message = 'Gas estimation failed, txn will most likely fail.';
                 } else {
                     message = error.message;
                 }
                 notificationService.clear();
                 notificationService.show({
-                    status: "danger",
-                    title: "Error",
+                    status: 'danger',
+                    title: 'Error',
                     description: message,
                 });
                 console.log(error);
@@ -257,17 +262,17 @@ export function Mint() {
     }
 
     return (
-        <Box shadow="$lg" maxW="$lg" borderRadius="$lg" p="$2" borderWidth="1px" borderColor="$neutral6">
-            <VStack spacing="$2" width="$sm">
-                <Input placeholder="Contract" value={contract()} onInput={handleContractInput} />
-                <Input placeholder="Cost" value={cost()} onInput={handleCostInput} />
-                <Input placeholder="Data" value={data()} onInput={handleDataInput} />
-                <HStack spacing="$2" width="$sm">
+        <Box shadow='$lg' maxW='$lg' borderRadius='$lg' p='$2' borderWidth='1px' borderColor='$neutral6'>
+            <VStack spacing='$2' width='$sm'>
+                <Input placeholder='Contract' value={contract()} onInput={handleContractInput} />
+                <Input placeholder='Cost' value={cost()} onInput={handleCostInput} />
+                <Input placeholder='Data' value={data()} onInput={handleDataInput} />
+                <HStack spacing='$2' width='$sm'>
                     <Checkbox checked={massMint()} onChange={handleMassMintSwitch} css={{marginRight: -8}} />
-                    <Input placeholder="Iterations" disabled={!massMint()} value={iterations()} onInput={handleIterationsInput} />
-                    <Input placeholder="Minters" disabled={!massMint()} value={minters()} onInput={handleMintersInput} />
+                    <Input placeholder='Iterations' disabled={!massMint()} value={iterations()} onInput={handleIterationsInput} />
+                    <Input placeholder='Minters' disabled={!massMint()} value={minters()} onInput={handleMintersInput} />
                 </HStack>
-                <Button disabled={enableButton()} width="100%" onClick={MintClick}>{massMint() ? "Mass Mint" : "Mint"}</Button>
+                <Button disabled={enableButton()} width='100%' onClick={MintClick}>{massMint() ? 'Mass Mint' : 'Mint'}</Button>
             </VStack>
         </Box>
     );

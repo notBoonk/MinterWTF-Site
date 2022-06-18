@@ -1,5 +1,8 @@
-import { createSignal, createEffect } from "solid-js";
+import { ethers } from 'ethers';
 
+import { connectWallet } from '../utils/Utils';
+
+import { createSignal, createEffect } from 'solid-js';
 import {
     notificationService,
     VStack,
@@ -9,11 +12,19 @@ import {
     Input,
 } from '@hope-ui/solid';
 
+async function getGasEstimate(limit) {
+	const temp = parseInt(limit.toString());
+	const estimate = Math.floor(temp + (temp * 0.1));
+	return ethers.BigNumber.from(estimate);
+}
+
 async function TransferTransaction(inputData) {
+    const utils = await connectWallet();
+
     try {
         let txOverrides = {}
         
-        const gasEstimate = await minterContract.connect(signer).estimateGas.transferTokens(
+        const gasEstimate = await utils.minterContract.connect(utils.signer).estimateGas.transferTokens(
             inputData.contract,
             parseInt(inputData.firstId),
             parseInt(inputData.lastId),
@@ -22,7 +33,7 @@ async function TransferTransaction(inputData) {
 
         txOverrides.gasLimit = await getGasEstimate(gasEstimate);
 
-        const tx = await minterContract.connect(signer).transferTokens(
+        const tx = await utils.minterContract.connect(utils.signer).transferTokens(
             inputData.contract,
             parseInt(inputData.firstId),
             parseInt(inputData.lastId),
@@ -32,8 +43,8 @@ async function TransferTransaction(inputData) {
         
         notificationService.clear();
         notificationService.show({
-            status: "info",
-            title: "Transfer Transaction",
+            status: 'info',
+            title: 'Transfer Transaction',
             loading: true,
             description: `Txn submitted to the network`,
         });
@@ -43,29 +54,29 @@ async function TransferTransaction(inputData) {
         if (receipt.status == 1) {
             notificationService.clear();
             notificationService.show({
-                status: "success",
-                title: "Transfer Transaction",
+                status: 'success',
+                title: 'Transfer Transaction',
                 description: `Txn included in Block ${receipt.blockNumber} 🌌`,
             });
         } else if (receipt.status == 0) {
             notificationService.clear();
             notificationService.show({
-                status: "danger",
-                title: "Transfer Transaction",
+                status: 'danger',
+                title: 'Transfer Transaction',
                 description: `Txn reverted in Block ${receipt.blockNumber}`,
             });
         }
     } catch (error) {
         let message;
-        if (error.message.includes("cannot estimate gas")) {
-            message = "Gas estimation failed, txn will most likely fail.";
+        if (error.message.includes('cannot estimate gas')) {
+            message = 'Gas estimation failed, txn will most likely fail.';
         } else {
             message = error.message;
         }
         notificationService.clear();
         notificationService.show({
-            status: "danger",
-            title: "Error",
+            status: 'danger',
+            title: 'Error',
             description: message,
         });
         console.log(error);
@@ -74,26 +85,26 @@ async function TransferTransaction(inputData) {
 
 export function MassTransfer() {
 
-    const [contract, setContract] = createSignal("");
+    const [contract, setContract] = createSignal('');
     const handleContractInput = event => setContract(event.target.value);
 
-    const [firstId, setFirstId] = createSignal("");
+    const [firstId, setFirstId] = createSignal('');
     const handleFirstIdInput = event => setFirstId(event.target.value);
 
-    const [lastId, setLastId] = createSignal("");
+    const [lastId, setLastId] = createSignal('');
     const handleLastIdInput = event => setLastId(event.target.value);
 
-    const [receiver, setReceiver] = createSignal("");
+    const [receiver, setReceiver] = createSignal('');
     const handleReceiverInput = event => setReceiver(event.target.value);
 
     const [enableButton, setEnableButton] = createSignal(true);
 
     createEffect(() => {
         if (
-            contract() != "" &&
-            firstId() != "" &&
-            lastId() != "" &&
-            receiver() != ""
+            contract() != '' &&
+            firstId() != '' &&
+            lastId() != '' &&
+            receiver() != ''
         ) {
             setEnableButton(false);
             return true;
@@ -115,15 +126,15 @@ export function MassTransfer() {
     }
 
     return (
-        <Box shadow="$lg" maxW="$lg" borderRadius="$lg" p="$2" borderWidth="1px" borderColor="$neutral6">
-            <VStack spacing="$2" width="$sm">
-                <Input placeholder="Contract" value={contract()} onInput={handleContractInput} />
-                <HStack spacing="$2" width="$sm">
-                    <Input placeholder="First ID" value={firstId()} onInput={handleFirstIdInput} />
-                    <Input placeholder="Last ID" value={lastId()} onInput={handleLastIdInput} />
+        <Box shadow='$lg' maxW='$lg' borderRadius='$lg' p='$2' borderWidth='1px' borderColor='$neutral6'>
+            <VStack spacing='$2' width='$sm'>
+                <Input placeholder='Contract' value={contract()} onInput={handleContractInput} />
+                <HStack spacing='$2' width='$sm'>
+                    <Input placeholder='First ID' value={firstId()} onInput={handleFirstIdInput} />
+                    <Input placeholder='Last ID' value={lastId()} onInput={handleLastIdInput} />
                 </HStack>
-                <Input placeholder="Receiver" value={receiver()} onInput={handleReceiverInput} />
-                <Button disabled={enableButton()} width="100%" onClick={onButtonClick}>Mass Transfer</Button>
+                <Input placeholder='Receiver' value={receiver()} onInput={handleReceiverInput} />
+                <Button disabled={enableButton()} width='100%' onClick={onButtonClick}>Mass Transfer</Button>
             </VStack>
         </Box>
     );

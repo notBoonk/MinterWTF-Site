@@ -1,4 +1,4 @@
-{"abi": [
+export const abi = [
 	{
 		"inputs": [],
 		"name": "buy",
@@ -200,4 +200,4 @@
 		"stateMutability": "view",
 		"type": "function"
 	}
-]}
+]
