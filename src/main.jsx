@@ -2,9 +2,7 @@ import { render } from 'solid-js/web';
 
 import { PageTitle } from './components/PageTitle';
 import { Mint } from './components/Mint';
-import { MassTransfer } from './components/MassTransfer';
 import { GasButtons } from './components/GasButtons';
-import { SetApproval } from './components/SetApproval';
 
 import {
     useColorMode,
@@ -23,8 +21,6 @@ function MyApp() {
             <VStack spacing='$3' width='$lg' marginBottom='75'>
                 <PageTitle />
                 <Mint />
-                <MassTransfer />
-                <SetApproval />
             </VStack>
             <GasButtons />
         </Center>

@@ -12,6 +12,11 @@ import {
     Input,
 } from '@hope-ui/solid';
 
+async function sendNotification(notif) {
+    notificationService.clear();
+    notificationService.show(notif);
+}
+
 async function getGasEstimate(limit) {
 	const temp = parseInt(limit.toString());
 	const estimate = Math.floor(temp + (temp * 0.1));
@@ -41,8 +46,7 @@ async function TransferTransaction(inputData) {
             txOverrides
         );
         
-        notificationService.clear();
-        notificationService.show({
+        sendNotification({
             status: 'info',
             title: 'Transfer Transaction',
             loading: true,
@@ -52,15 +56,13 @@ async function TransferTransaction(inputData) {
         const receipt = await tx.wait();
 
         if (receipt.status == 1) {
-            notificationService.clear();
-            notificationService.show({
+            sendNotification({
                 status: 'success',
                 title: 'Transfer Transaction',
                 description: `Txn included in Block ${receipt.blockNumber} 🌌`,
             });
         } else if (receipt.status == 0) {
-            notificationService.clear();
-            notificationService.show({
+            sendNotification({
                 status: 'danger',
                 title: 'Transfer Transaction',
                 description: `Txn reverted in Block ${receipt.blockNumber}`,
@@ -68,18 +70,18 @@ async function TransferTransaction(inputData) {
         }
     } catch (error) {
         let message;
+
         if (error.message.includes('cannot estimate gas')) {
             message = 'Gas estimation failed, txn will most likely fail.';
         } else {
             message = error.message;
         }
-        notificationService.clear();
-        notificationService.show({
+
+        sendNotification({
             status: 'danger',
             title: 'Error',
             description: message,
         });
-        console.log(error);
     }
 }
 
@@ -126,10 +128,10 @@ export function MassTransfer() {
     }
 
     return (
-        <Box shadow='$lg' maxW='$lg' borderRadius='$lg' p='$2' borderWidth='1px' borderColor='$neutral6'>
-            <VStack spacing='$2' width='$sm'>
+        <Box shadow='$lg' maxW='$lg' borderRadius='$lg' p='$3' borderWidth='1px' borderColor='$neutral6'>
+            <VStack spacing='$2'>
                 <Input placeholder='Contract' value={contract()} onInput={handleContractInput} />
-                <HStack spacing='$2' width='$sm'>
+                <HStack spacing='$2' width='100%'>
                     <Input placeholder='First ID' value={firstId()} onInput={handleFirstIdInput} />
                     <Input placeholder='Last ID' value={lastId()} onInput={handleLastIdInput} />
                 </HStack>

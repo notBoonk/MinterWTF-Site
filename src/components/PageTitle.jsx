@@ -102,8 +102,8 @@ export function PageTitle() {
     return (
         <VStack>
             <HStack gap={4} onclick={() => console.log('HELLO')}>
-                <Heading size='2xl' css={{marginTop: 30, marginBottom: 15, fontWeight: 'bold'}}>Minter</Heading>
-                <Heading size='2xl' css={{marginTop: 30, marginBottom: 15, color: '#05a2c2', fontWeight: 'bold'}}>WTF</Heading>
+                <Heading size='2xl' css={{marginTop: 40, marginBottom: 25, fontWeight: 'bold'}}>Minter</Heading>
+                <Heading size='2xl' css={{marginTop: 40, marginBottom: 25, color: '#05a2c2', fontWeight: 'bold'}}>WTF</Heading>
             </HStack>
             {!isAllowed() && <Button width='200%' css={{marginBottom: 10}} onclick={purchaseClick}>Purchase</Button>}
         </VStack>

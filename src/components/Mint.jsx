@@ -2,16 +2,28 @@ import { ethers } from 'ethers';
 
 import { connectWallet } from '../utils/Utils';
 
+import { FiRepeat } from 'solid-icons/fi';
+
 import { createSignal, createEffect } from 'solid-js';
 import {
     notificationService,
     VStack,
     HStack,
     Button,
+    IconButton,
     Box,
     Input,
     Checkbox,
+    Tooltip
 } from '@hope-ui/solid';
+
+const [loopMint, setLoopMint] = createSignal(false);
+const handleSetLoopMint = event => setLoopMint(!loopMint());
+
+async function sendNotification(notif) {
+    notificationService.clear();
+    notificationService.show(notif);
+}
 
 async function getGasEstimate(limit) {
 	const temp = parseInt(limit.toString());
@@ -23,6 +35,165 @@ async function getCurrentGas() {
     const resp = await fetch('https://etherchain.org/api/gasnow');
     const data = await resp.json();
     return [data.data.fast, data.data.rapid];
+}
+
+async function sendNormalMint(inputData) {
+    try {
+        const utils = await connectWallet();
+
+        let txData = {
+            to: inputData.contract,
+            value: ethers.utils.parseEther(inputData.cost),
+            data: inputData.data,
+        };
+        
+        const gasNumbers = await getCurrentGas();
+        const gasEstimate = await utils.signer.estimateGas(txData);
+        const selectedGas = localStorage.getItem('selectedGas') || 0;
+
+        txData.gasLimit = await getGasEstimate(gasEstimate);
+
+        if (selectedGas == 1) {
+            txData.gasPrice = ethers.utils.parseUnits((Math.floor(gasNumbers[0] / 1000000000) + 5).toString(), 'gwei');
+        } else if (selectedGas == 2) {
+            txData.gasPrice = ethers.utils.parseUnits((Math.floor(gasNumbers[1] / 1000000000) + 10).toString(), 'gwei');
+        } else if (selectedGas == 3) {
+            txData.gasPrice = ethers.utils.parseUnits(localStorage.getItem('profile1'), 'gwei');
+        } else if (selectedGas == 4) {
+            txData.gasPrice = ethers.utils.parseUnits(localStorage.getItem('profile2'), 'gwei');
+        }
+
+        const tx = await utils.signer.sendTransaction(txData);
+        
+        sendNotification({
+            status: 'info',
+            title: 'Mint Transaction',
+            loading: true,
+            description: `Txn submitted to the network`,
+        });
+        
+        const receipt = await tx.wait();
+
+        if (receipt.status == 1) {
+            sendNotification({
+                status: 'success',
+                title: 'Mint Transaction',
+                description: `Txn included in Block ${receipt.blockNumber} 🌌`,
+            });
+        } else if (receipt.status == 0) {
+            sendNotification({
+                status: 'danger',
+                title: 'Mint Transaction',
+                description: `Txn reverted in Block ${receipt.blockNumber}`,
+            });
+        }
+    } catch (error) {
+        let message;
+
+        if (error.message.includes('cannot estimate gas')) {
+            message = 'Gas estimation failed, txn will most likely fail.';
+        } else {
+            message = error.message;
+        }
+
+        sendNotification({
+            status: 'danger',
+            title: 'Error',
+            description: message,
+        });
+
+        if (loopMint()) {
+            const sleep = ms => new Promise(r => setTimeout(r, ms));
+            await sleep(1000);
+            sendNormalMint(inputData);
+        }
+    }
+}
+
+async function sendMassMint(inputData) {
+    try {
+        const utils = await connectWallet();
+
+        let txOverrides = {}
+
+        let totalCost = (inputData.cost * inputData.iterations) * inputData.minters;
+        txOverrides.value = ethers.utils.parseEther(totalCost.toString());
+        
+        const gasEstimate = await utils.minterContract.connect(utils.signer).estimateGas.mint(
+            inputData.contract,
+            ethers.utils.parseEther(inputData.cost.toString()),
+            inputData.data,
+            inputData.transfer,
+            inputData.iterations,
+            inputData.minters,
+            txOverrides
+        );
+        txOverrides.gasLimit = await getGasEstimate(gasEstimate);
+        
+        const selectedGas = localStorage.getItem('selectedGas') || 0;
+        const gasNumbers = await getCurrentGas();
+        
+        if (selectedGas == 1) {
+            txOverrides.gasPrice = ethers.utils.parseUnits((Math.floor(gasNumbers[0] / 1000000000) + 5).toString(), 'gwei');
+        } else if (selectedGas == 2) {
+            txOverrides.gasPrice = ethers.utils.parseUnits((Math.floor(gasNumbers[1] / 1000000000) + 10).toString(), 'gwei');
+        } else if (selectedGas == 3) {
+            txOverrides.gasPrice = ethers.utils.parseUnits(localStorage.getItem('profile1'), 'gwei');
+        } else if (selectedGas == 4) {
+            txOverrides.gasPrice = ethers.utils.parseUnits(localStorage.getItem('profile2'), 'gwei');
+        }
+
+        const tx = await utils.minterContract.connect(utils.signer).mint(
+            inputData.contract,
+            ethers.utils.parseEther(inputData.cost.toString()),
+            inputData.data,
+            inputData.transfer,
+            inputData.iterations,
+            inputData.minters,
+            txOverrides
+        );
+        
+        sendNotification({
+            status: 'info',
+            title: 'Mass Mint Transaction',
+            loading: true,
+            description: `Txn submitted to the network`,
+        });
+        
+        const receipt = await tx.wait();
+
+        if (receipt.status == 1) {
+            sendNotification({
+                status: 'success',
+                title: 'Mass Mint Transaction',
+                description: `Txn included in Block ${receipt.blockNumber} 🌌`,
+            });
+        } else if (receipt.status == 0) {
+            sendNotification({
+                status: 'danger',
+                title: 'Mass Mint Transaction',
+                description: `Txn reverted in Block ${receipt.blockNumber}`,
+            });
+        }
+    } catch (error) {
+        let message;
+
+        if (error.message.includes('cannot estimate gas')) {
+            message = 'Gas estimation failed, txn will most likely fail.';
+        } else {
+            message = error.message;
+        }
+
+        sendNotification({
+            status: 'danger',
+            title: 'Error',
+            description: message,
+        });
+
+        if (loopMint()) {
+            sendMassMint(inputData);
+        }
+    }
 }
 
 export function Mint() {
@@ -94,170 +265,23 @@ export function Mint() {
     });
 
     const MintClick = async () => {
-        const utils = await connectWallet();
-
         if (massMint()) {
-            try {
-                const inputData = {
-                    contract: contract(),
-                    cost: parseFloat(cost()),
-                    data: data(),
-                    iterations: parseInt(iterations()),
-                    minters: parseInt(minters()),
-                    transfer: false
-                }
-    
-                let txOverrides = {}
-
-                let totalCost = (inputData.cost * inputData.iterations) * inputData.minters;
-                txOverrides.value = ethers.utils.parseEther(totalCost.toString());
-                
-                const gasEstimate = await utils.minterContract.connect(utils.signer).estimateGas.mint(
-                    inputData.contract,
-                    ethers.utils.parseEther(inputData.cost.toString()),
-                    inputData.data,
-                    inputData.transfer,
-                    inputData.iterations,
-                    inputData.minters,
-                    txOverrides
-                );
-                txOverrides.gasLimit = await getGasEstimate(gasEstimate);
-                
-                const selectedGas = localStorage.getItem('selectedGas') || 0;
-                const gasNumbers = await getCurrentGas();
-                
-                if (selectedGas == 1) {
-                    txOverrides.gasPrice = ethers.utils.parseUnits((Math.floor(gasNumbers[0] / 1000000000) + 5).toString(), 'gwei');
-                } else if (selectedGas == 2) {
-                    txOverrides.gasPrice = ethers.utils.parseUnits((Math.floor(gasNumbers[1] / 1000000000) + 10).toString(), 'gwei');
-                } else if (selectedGas == 3) {
-                    txOverrides.gasPrice = ethers.utils.parseUnits(localStorage.getItem('profile1'), 'gwei');
-                } else if (selectedGas == 4) {
-                    txOverrides.gasPrice = ethers.utils.parseUnits(localStorage.getItem('profile2'), 'gwei');
-                }
-
-                const tx = await utils.minterContract.connect(utils.signer).mint(
-                    inputData.contract,
-                    ethers.utils.parseEther(inputData.cost.toString()),
-                    inputData.data,
-                    inputData.transfer,
-                    inputData.iterations,
-                    inputData.minters,
-                    txOverrides
-                );
-                
-                notificationService.clear();
-                notificationService.show({
-                    status: 'info',
-                    title: 'Mass Mint Transaction',
-                    loading: true,
-                    description: `Txn submitted to the network`,
-                });
-                
-                const receipt = await tx.wait();
-    
-                if (receipt.status == 1) {
-                    notificationService.clear();
-                    notificationService.show({
-                        status: 'success',
-                        title: 'Mass Mint Transaction',
-                        description: `Txn included in Block ${receipt.blockNumber} 🌌`,
-                    });
-                } else if (receipt.status == 0) {
-                    notificationService.clear();
-                    notificationService.show({
-                        status: 'danger',
-                        title: 'Mass Mint Transaction',
-                        description: `Txn reverted in Block ${receipt.blockNumber}`,
-                    });
-                }
-            } catch (error) {
-                let message;
-                if (error.message.includes('cannot estimate gas')) {
-                    message = 'Gas estimation failed, txn will most likely fail.';
-                } else {
-                    message = error.message;
-                }
-                notificationService.clear();
-                notificationService.show({
-                    status: 'danger',
-                    title: 'Error',
-                    description: message,
-                });
-                console.log(error);
+            const inputData = {
+                contract: contract(),
+                cost: parseFloat(cost()),
+                data: data(),
+                iterations: parseInt(iterations()),
+                minters: parseInt(minters()),
+                transfer: false
             }
+            sendMassMint(inputData);
         } else {
-            try {
-                const inputData = {
-                    contract: contract(),
-                    cost: cost(),
-                    data: data()
-                }
-    
-                let txData = {
-                    to: inputData.contract,
-                    value: ethers.utils.parseEther(inputData.cost),
-                    data: inputData.data,
-                };
-                
-                const gasNumbers = await getCurrentGas();
-                const gasEstimate = await utils.signer.estimateGas(txData);
-                const selectedGas = localStorage.getItem('selectedGas') || 0;
-
-                txData.gasLimit = await getGasEstimate(gasEstimate);
-
-                if (selectedGas == 1) {
-                    txData.gasPrice = ethers.utils.parseUnits((Math.floor(gasNumbers[0] / 1000000000) + 5).toString(), 'gwei');
-                } else if (selectedGas == 2) {
-                    txData.gasPrice = ethers.utils.parseUnits((Math.floor(gasNumbers[1] / 1000000000) + 10).toString(), 'gwei');
-                } else if (selectedGas == 3) {
-                    txData.gasPrice = ethers.utils.parseUnits(localStorage.getItem('profile1'), 'gwei');
-                } else if (selectedGas == 4) {
-                    txData.gasPrice = ethers.utils.parseUnits(localStorage.getItem('profile2'), 'gwei');
-                }
-    
-                const tx = await utils.signer.sendTransaction(txData);
-                
-                notificationService.clear();
-                notificationService.show({
-                    status: 'info',
-                    title: 'Mint Transaction',
-                    loading: true,
-                    description: `Txn submitted to the network`,
-                });
-                
-                const receipt = await tx.wait();
-
-                if (receipt.status == 1) {
-                    notificationService.clear();
-                    notificationService.show({
-                        status: 'success',
-                        title: 'Mint Transaction',
-                        description: `Txn included in Block ${receipt.blockNumber} 🌌`,
-                    });
-                } else if (receipt.status == 0) {
-                    notificationService.clear();
-                    notificationService.show({
-                        status: 'danger',
-                        title: 'Mint Transaction',
-                        description: `Txn reverted in Block ${receipt.blockNumber}`,
-                    });
-                }
-            } catch (error) {
-                let message;
-                if (error.message.includes('cannot estimate gas')) {
-                    message = 'Gas estimation failed, txn will most likely fail.';
-                } else {
-                    message = error.message;
-                }
-                notificationService.clear();
-                notificationService.show({
-                    status: 'danger',
-                    title: 'Error',
-                    description: message,
-                });
-                console.log(error);
+            const inputData = {
+                contract: contract(),
+                cost: cost(),
+                data: data()
             }
+            sendNormalMint(inputData);
         }
     }
 
@@ -272,7 +296,12 @@ export function Mint() {
                     <Input placeholder='Iterations' disabled={!massMint()} value={iterations()} onInput={handleIterationsInput} />
                     <Input placeholder='Minters' disabled={!massMint()} value={minters()} onInput={handleMintersInput} />
                 </HStack>
-                <Button disabled={enableButton()} width='100%' onClick={MintClick}>{massMint() ? 'Mass Mint' : 'Mint'}</Button>
+                <HStack spacing='$2' width='$sm'>
+                    <Button disabled={enableButton()} width='100%' onClick={MintClick}>{massMint() ? 'Mass Mint' : 'Mint'}</Button>
+                    <Tooltip label={`Auto-Retry: ` + (loopMint() ? 'Enabled' : 'Disabled')}>
+                        <IconButton disabled={enableButton()} colorScheme={loopMint() ? 'success' : 'danger'} width='100%' onClick={handleSetLoopMint} icon={<FiRepeat />}/>
+                    </Tooltip>
+                </HStack>
             </VStack>
         </Box>
     );

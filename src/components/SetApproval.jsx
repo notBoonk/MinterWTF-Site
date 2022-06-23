@@ -11,6 +11,11 @@ import {
     Input,
 } from '@hope-ui/solid';
 
+async function sendNotification(notif) {
+    notificationService.clear();
+    notificationService.show(notif);
+}
+
 async function getGasEstimate(limit) {
 	const temp = parseInt(limit.toString());
 	const estimate = Math.floor(temp + (temp * 0.1));
@@ -55,8 +60,7 @@ export function SetApproval() {
 
             const tx = await utils.signer.sendTransaction(txData);
             
-            notificationService.clear();
-            notificationService.show({
+            sendNotification({
                 status: 'info',
                 title: 'Set Approval Transaction',
                 loading: true,
@@ -66,15 +70,13 @@ export function SetApproval() {
             const receipt = await tx.wait();
 
             if (receipt.status == 1) {
-                notificationService.clear();
-                notificationService.show({
+                sendNotification({
                     status: 'success',
                     title: 'Set Approval Transaction',
                     description: `Txn included in Block ${receipt.blockNumber} 🌌`,
                 });
             } else if (receipt.status == 0) {
-                notificationService.clear();
-                notificationService.show({
+                sendNotification({
                     status: 'danger',
                     title: 'Set Approval Transaction',
                     description: `Txn reverted in Block ${receipt.blockNumber}`,
@@ -82,24 +84,24 @@ export function SetApproval() {
             }
         } catch (error) {
             let message;
+
             if (error.message.includes('cannot estimate gas')) {
                 message = 'Gas estimation failed, txn will most likely fail.';
             } else {
                 message = error.message;
             }
-            notificationService.clear();
-            notificationService.show({
+    
+            sendNotification({
                 status: 'danger',
                 title: 'Error',
                 description: message,
             });
-            console.log(error);
         }
     }
 
     return (
-        <Box shadow='$lg' maxW='$lg' borderRadius='$lg' p='$2' borderWidth='1px' borderColor='$neutral6'>
-            <VStack spacing='$2' width='$sm'>
+        <Box shadow='$lg' maxW='$lg' borderRadius='$lg' p='$3' borderWidth='1px' borderColor='$neutral6'>
+            <VStack spacing='$2'>
                 <Input placeholder='Contract' value={contract()} onInput={handleContractInput} />
                 <Button disabled={enableButton()} width='100%' onClick={onButtonClick}>Set Approval</Button>
             </VStack>
