@@ -14,7 +14,17 @@ import {
     Box,
     Input,
     Checkbox,
-    Tooltip
+    Tooltip,
+    Select,
+    SelectTrigger,
+    SelectPlaceholder,
+    SelectValue,
+    SelectIcon,
+    SelectContent,
+    SelectListbox,
+    SelectOption,
+    SelectOptionText,
+    SelectOptionIndicator,
 } from '@hope-ui/solid';
 
 const [loopMint, setLoopMint] = createSignal(false);
@@ -218,6 +228,9 @@ export function Mint() {
     const [minters, setMinters] = createSignal('');
     const handleMintersInput = event => setMinters(event.target.value);
 
+    const [transfer, setTransfer] = createSignal(false);
+    const handleTransferChange = event => setTransfer(event);
+
     const [massMint, setMassMint] = createSignal(false);
     const handleMassMintSwitch = event => setMassMint(event.target.checked);
 
@@ -274,7 +287,7 @@ export function Mint() {
                 data: data(),
                 iterations: parseInt(iterations()),
                 minters: parseInt(minters()),
-                transfer: false
+                transfer: transfer()
             }
             sendMassMint(inputData);
         } else {
@@ -295,8 +308,34 @@ export function Mint() {
                 <Input placeholder='Data' value={data()} onInput={handleDataInput} />
                 <HStack spacing='$2' width='$sm'>
                     <Checkbox checked={massMint()} onChange={handleMassMintSwitch} css={{marginRight: -8}} />
-                    <Input placeholder='Iterations' disabled={!massMint()} value={iterations()} onInput={handleIterationsInput} />
-                    <Input placeholder='Minters' disabled={!massMint()} value={minters()} onInput={handleMintersInput} />
+                    <VStack spacing='$2'>
+
+                        <HStack spacing='$2'>
+                        <Input placeholder='Iterations' disabled={!massMint()} value={iterations()} onInput={handleIterationsInput} />
+                        <Input placeholder='Minters' disabled={!massMint()} value={minters()} onInput={handleMintersInput} />
+                        </HStack>
+
+                        <Select onChange={handleTransferChange} disabled={!massMint()} defaultValue={transfer()}>
+                            <SelectTrigger>
+                                <SelectPlaceholder>Auto Transfer</SelectPlaceholder>
+                                <SelectValue />
+                                <SelectIcon />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectListbox>
+                                <For each={["Transfer: True", "Transfer: False"]}>
+                                    {item => (
+                                    <SelectOption value={item == "Transfer: True" ? true : false}>
+                                        <SelectOptionText>{item}</SelectOptionText>
+                                        <SelectOptionIndicator />
+                                    </SelectOption>
+                                    )}
+                                </For>
+                                </SelectListbox>
+                            </SelectContent>
+                        </Select>
+
+                    </VStack>
                 </HStack>
                 <HStack spacing='$2' width='$sm'>
                     <Button disabled={enableButton()} width='100%' onClick={MintClick}>{massMint() ? 'Mass Mint' : 'Mint'}</Button>
