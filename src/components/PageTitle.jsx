@@ -20,6 +20,7 @@ async function getGasEstimate(limit) {
 export function PageTitle() {
 
     const [isAllowed, setIsAllowed] = createSignal(true);
+    const [price, setPrice] = createSignal(0);
 
     (async () => {
         const utils = await connectWallet();
@@ -30,6 +31,10 @@ export function PageTitle() {
         
             const isUserAllowed = await utils.minterContract.connect(utils.signer).Allowed(user);
             const isUserOwner = contractOwner.toLowerCase() == user.toLowerCase() ? true : false;
+
+            const purchasePrice = await utils.minterContract.connect(utils.signer).salePrice();
+            const etherPurchasePrice = parseInt(purchasePrice.toString()) / 1000000000000000000;
+            setPrice(etherPurchasePrice);
             
             if (isUserAllowed || isUserOwner) {
                 setIsAllowed(true);
@@ -105,7 +110,7 @@ export function PageTitle() {
                 <Heading size='2xl' css={{marginTop: 40, marginBottom: 25, fontWeight: 'bold'}}>Minter</Heading>
                 <Heading size='2xl' css={{marginTop: 40, marginBottom: 25, color: '#05a2c2', fontWeight: 'bold'}}>WTF</Heading>
             </HStack>
-            {!isAllowed() && <Button width='200%' css={{marginBottom: 10}} onclick={purchaseClick}>Purchase</Button>}
+            {!isAllowed() && <Button width='200%' css={{marginBottom: 10}} onclick={purchaseClick}>Purchase - {price()}Ξ</Button>}
         </VStack>
     )
 }
